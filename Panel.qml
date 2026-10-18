@@ -32,6 +32,9 @@ Panel {
   readonly property bool onlyHardStates: setting("onlyHardStates", true) === true
   readonly property bool includeHosts: setting("includeHosts", true) === true
   readonly property bool allowInsecureTls: setting("allowInsecureTls", false) === true
+  readonly property bool agentEnabled: setting("agentEnabled", true) === true
+  readonly property bool agentFixDirectly: setting("agentFixDirectly", false) === true
+  readonly property string agentContext: String(setting("agentContext", ""))
 
   readonly property bool configured: root.siteUrl !== "" && root.username !== ""
 
@@ -140,6 +143,18 @@ Panel {
     if (url !== "") Quickshell.execDetached(["xdg-open", url])
   }
 
+  // Hand problems to Omarchy's default coding agent in a terminal. --pick
+  // opens the agent chooser when no default is set yet.
+  function askAgent(rows) {
+    if (!root.agentEnabled || !rows || rows.length === 0) return
+    var prompt = Model.agentPrompt(rows, {
+      siteUrl: root.siteUrl, username: root.username, secretPath: root.secretPath,
+      fixDirectly: root.agentFixDirectly, context: root.agentContext, nowSec: Date.now() / 1000
+    })
+    Quickshell.execDetached(["omarchy-agent", "--pick", "--prompt", prompt])
+    root.close()
+  }
+
   // Re-check immediately when the target changes, and start the
   // notification baseline over: a different site is a different world.
   onSiteUrlChanged: { root.rows = []; root.loaded = false; root.error = null; root.notifiedState = null; Qt.callLater(refresh) }
@@ -227,6 +242,10 @@ Panel {
       onTextKey: function (key) {
         if (key === "r") root.refresh()
         else if (key === "o") root.openInBrowser(null)
+        else if (key === "a") {
+          var sel = root.cursorActive ? root.visibleRows[root.selectedIndex] : null
+          root.askAgent(sel ? [sel] : root.visibleRows)
+        }
       }
 
       Column {
@@ -287,6 +306,7 @@ Panel {
 
             Repeater {
               model: [
+                { glyph: Model.GLYPH.agent, tip: "agent", act: "agent" },
                 { glyph: Model.GLYPH.refresh, tip: "refresh", act: "refresh" },
                 { glyph: Model.GLYPH.open, tip: "open", act: "open" }
               ]
@@ -297,6 +317,7 @@ Panel {
                 radius: Style.cornerRadius
                 color: actionArea.containsMouse ? root.hoverFill : "transparent"
                 visible: root.configured
+                  && (modelData.act !== "agent" || (root.agentEnabled && root.visibleRows.length > 0))
                 opacity: modelData.act === "refresh" && fetchProc.running ? 0.4 : 1
 
                 Text {
@@ -311,7 +332,11 @@ Panel {
                   anchors.fill: parent
                   hoverEnabled: true
                   cursorShape: Qt.PointingHandCursor
-                  onClicked: modelData.act === "refresh" ? root.refresh() : root.openInBrowser(null)
+                  onClicked: {
+                    if (modelData.act === "agent") root.askAgent(root.visibleRows)
+                    else if (modelData.act === "refresh") root.refresh()
+                    else root.openInBrowser(null)
+                  }
                 }
               }
             }
@@ -364,7 +389,8 @@ Panel {
             required property int index
             readonly property bool selected: root.cursorActive && index === root.selectedIndex
             width: list.width
-            height: rowContent.implicitHeight + Style.space(12)
+            height: Math.max(rowContent.implicitHeight + Style.space(12),
+              agentPill.y + agentPill.height + Style.space(6))
             radius: Style.cornerRadius
             color: selected ? root.selectedFill : (rowArea.containsMouse ? root.hoverFill : "transparent")
 
@@ -463,6 +489,39 @@ Panel {
               cursorShape: Qt.PointingHandCursor
               onClicked: root.openInBrowser(rowItem.modelData)
             }
+
+            // "Fix with agent" for just this row, under its state badge.
+            Rectangle {
+              id: agentPill
+              anchors.left: badge.left
+              anchors.top: badge.bottom
+              anchors.topMargin: Style.space(4)
+              width: badge.width
+              height: agentPillText.implicitHeight + Style.space(4)
+              radius: badge.radius
+              visible: root.agentEnabled
+              opacity: rowArea.containsMouse || agentPillArea.containsMouse || rowItem.selected ? 1 : 0
+              color: agentPillArea.containsMouse ? root.hoverFill : "transparent"
+              border.width: 1
+              border.color: Util.alpha(root.barForeground, 0.35)
+
+              Text {
+                id: agentPillText
+                anchors.centerIn: parent
+                textFormat: Text.PlainText
+                text: Model.GLYPH.agent + " fix"
+                color: root.barForeground
+                font.family: root.bar ? root.bar.fontFamily : Style.font.family
+                font.pixelSize: Style.font.caption
+              }
+              MouseArea {
+                id: agentPillArea
+                anchors.fill: parent
+                hoverEnabled: true
+                cursorShape: Qt.PointingHandCursor
+                onClicked: root.askAgent([rowItem.modelData])
+              }
+            }
           }
         }
 
@@ -478,6 +537,7 @@ Panel {
           text: root.updatedText()
             + (root.hiddenCount > 0 ? " · " + root.hiddenCount + " acknowledged/soft hidden" : "")
             + (root.visibleRows.length > 0 ? " · click to open in Checkmk" : "")
+            + (root.visibleRows.length > 0 && root.agentEnabled ? " · a: ask agent" : "")
         }
       }
     }

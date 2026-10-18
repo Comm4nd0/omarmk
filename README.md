@@ -13,6 +13,9 @@ needs attention.
 - **Notifications**: a desktop notification when a host or service newly
   enters a problem state or gets worse (WARN → CRIT). The first check after
   login sends one summary instead of a pile of popups.
+- **Ask the AI agent**: hand one problem, or all of them, to Omarchy's default
+  coding agent (`omarchy agent`) in a terminal, with the check output and
+  instructions to find the root cause and ask before changing anything.
 
 ![preview](preview.png)
 
@@ -89,6 +92,9 @@ can be changed with `omarchy bar set io.github.comm4nd0.omarmk <key> <value>`.
 | `onlyHardStates` | `true` | Ignore soft states Checkmk is still re-checking, like its own notifications do |
 | `includeHosts` | `true` | Include hosts that are DOWN or UNREACHABLE |
 | `allowInsecureTls` | `false` | Accept a self-signed HTTPS certificate |
+| `agentEnabled` | `true` | Show the buttons that hand problems to the AI agent |
+| `agentFixDirectly` | `false` | Let the agent apply safe, reversible fixes itself (it still asks before destructive ones) |
+| `agentContext` | `""` | Notes added to every agent prompt, e.g. how to SSH to your machines |
 
 ## Using it
 
@@ -98,8 +104,15 @@ can be changed with `omarchy bar set io.github.comm4nd0.omarmk <key> <value>`.
 | Middle click | Check now |
 | Right click | Open the Checkmk problems dashboard |
 | Click a row | Open that host or service in Checkmk |
+| Agent button in the header / `fix` on a row | Ask the AI agent to investigate all problems / that one |
 | `j` / `k` or arrows, `Enter` | Move through the list, open the selected row |
+| `a` | Ask the agent about the selected row, or all rows if none is selected |
 | `r` / `o` / `Esc` | Refresh / open dashboard / close |
+
+The agent runs on your machine without approval prompts, so by default its
+prompt tells it to diagnose read-only and wait for your go-ahead before
+changing anything. Check output is passed as data, fenced off from the
+instructions. It may read the stored secret to query the Checkmk API itself.
 
 Summon it from a keybinding with
 `omarchy-shell shell toggle io.github.comm4nd0.omarmk '{}'`.
@@ -125,6 +138,7 @@ longer need it.
 - Checkmk 2.2 or newer, Raw/Community or any commercial edition (REST API
   `/check_mk/api/1.0`)
 - `curl`, `notify-send` (libnotify) and `xdg-open`, which Omarchy ships
+- Optional: a coding agent set up with `omarchy agent` for the agent buttons
 
 ## Development
 

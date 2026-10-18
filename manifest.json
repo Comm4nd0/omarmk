@@ -5,9 +5,13 @@
   "version": "0.1.0",
   "author": "Comm4nd0",
   "license": "MIT",
-  "description": "Keeps an eye on a Checkmk monitoring site from the bar: a count of hosts and services with problems, a popup listing them worst first, and a desktop notification the moment something new goes WARN, CRIT or DOWN.",
-  "kinds": ["bar-widget"],
-  "entryPoints": { "barWidget": "Panel.qml" },
+  "description": "Keeps an eye on a Checkmk monitoring site from the bar: a count of hosts and services with problems, a popup listing them worst first, and a desktop notification the moment something new goes WARN, CRIT or DOWN, with a button that asks your Omarchy AI agent to investigate and fix them.",
+  "kinds": [
+    "bar-widget"
+  ],
+  "entryPoints": {
+    "barWidget": "Panel.qml"
+  },
   "barWidget": {
     "displayName": "OmarMK",
     "description": "Checkmk problems at a glance, with notifications.",
@@ -25,7 +29,10 @@
       "hideHandled": true,
       "onlyHardStates": true,
       "includeHosts": true,
-      "allowInsecureTls": false
+      "allowInsecureTls": false,
+      "agentEnabled": true,
+      "agentFixDirectly": false,
+      "agentContext": ""
     },
     "schema": [
       {
@@ -69,7 +76,11 @@
         "key": "notifyMinState",
         "type": "enum",
         "label": "Notify from",
-        "options": ["warning", "unknown", "critical"],
+        "options": [
+          "warning",
+          "unknown",
+          "critical"
+        ],
         "defaultValue": "warning",
         "description": "Lowest state that triggers a notification. Down hosts always count as critical."
       },
@@ -104,6 +115,27 @@
         "label": "Accept self-signed HTTPS",
         "defaultValue": false,
         "description": "Skip certificate verification for a site with a self-signed certificate."
+      },
+      {
+        "key": "agentEnabled",
+        "type": "boolean",
+        "label": "Ask the AI agent to fix",
+        "defaultValue": true,
+        "description": "Show buttons that hand problems to Omarchy's default coding agent (omarchy agent) in a terminal."
+      },
+      {
+        "key": "agentFixDirectly",
+        "type": "boolean",
+        "label": "Let the agent apply safe fixes",
+        "defaultValue": false,
+        "description": "Off: the agent diagnoses and asks before changing anything. On: it may apply safe, reversible fixes itself and asks only before destructive ones."
+      },
+      {
+        "key": "agentContext",
+        "type": "string",
+        "label": "Notes for the agent",
+        "defaultValue": "",
+        "description": "Added to every prompt, for example how to reach your machines: \"SSH as root to each host by name; Proxmox containers run on pve1 and pve2.\""
       }
     ]
   }
