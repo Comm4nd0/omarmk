@@ -1,0 +1,52 @@
+#!/bin/bash
+# omarmk-fetch USER SECRET_FILE INSECURE SERVICES_URL [HOSTS_URL]
+#
+# Queries the Checkmk REST API for every non-OK service (and host, when a
+# hosts URL is given) and prints, per table, a marker line
+# "@@<table> <http-code>" followed by the response body. curl failures
+# (DNS, refused, timeout) print code 000 with curl's message as the body.
+#
+# The automation secret is read here, from a file, and handed to curl as a
+# config file on stdin through the printf builtin, so it never appears on a
+# command line (ps, /proc/*/cmdline) or inside the shell's QML scene.
+
+set -u
+
+user=${1:-}
+secret_file=${2:-}
+insecure=${3:-0}
+services_url=${4:-}
+hosts_url=${5:-}
+
+fail() {
+  printf '@@services 000\n%s\n' "$1"
+  exit 0
+}
+
+[[ -n $user && -n $services_url ]] || fail "OmarMK is missing a site URL or username"
+[[ -r $secret_file ]] || fail "Cannot read the secret file $secret_file"
+
+secret=$(<"$secret_file")
+secret=${secret//[$'\r\n\t ']/}
+[[ -n $secret ]] || fail "The secret file $secret_file is empty"
+# Both values go inside a double-quoted curl config string.
+[[ $user$secret != *[\"\\]* ]] || fail "Username or secret contains a quote or backslash"
+
+curl_opts=(-s --max-time 15 -H "Accept: application/json" -K - -w '\n@@code %{http_code} %{errormsg}')
+[[ $insecure == 1 ]] && curl_opts+=(-k)
+
+fetch() {
+  local name=$1 url=$2 out tail code msg
+  out=$(printf 'header = "Authorization: Bearer %s %s"\n' "$user" "$secret" | curl "${curl_opts[@]}" "$url")
+  tail=${out##*$'\n'@@code }
+  out=${out%$'\n'@@code *}
+  [[ $out == @@code\ * ]] && { tail=${out#@@code }; out=""; }
+  code=${tail%% *}
+  msg=${tail#* }
+  [[ $code == 000 ]] && out=$msg
+  printf '@@%s %s\n%s\n' "$name" "$code" "$out"
+}
+
+fetch services "$services_url"
+[[ -n $hosts_url ]] && fetch hosts "$hosts_url"
+exit 0

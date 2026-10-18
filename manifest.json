@@ -1,0 +1,110 @@
+{
+  "schemaVersion": 1,
+  "id": "io.github.comm4nd0.omarmk",
+  "name": "OmarMK",
+  "version": "0.1.0",
+  "author": "Comm4nd0",
+  "license": "MIT",
+  "description": "Keeps an eye on a Checkmk monitoring site from the bar: a count of hosts and services with problems, a popup listing them worst first, and a desktop notification the moment something new goes WARN, CRIT or DOWN.",
+  "kinds": ["bar-widget"],
+  "entryPoints": { "barWidget": "Panel.qml" },
+  "barWidget": {
+    "displayName": "OmarMK",
+    "description": "Checkmk problems at a glance, with notifications.",
+    "category": "System",
+    "allowMultiple": false,
+    "defaultSection": "right",
+    "defaults": {
+      "siteUrl": "",
+      "username": "omarmk",
+      "secretFile": "~/.config/omarmk/secret",
+      "refreshIntervalSec": 60,
+      "notify": true,
+      "notifyMinState": "warning",
+      "notifyRecoveries": false,
+      "hideHandled": true,
+      "onlyHardStates": true,
+      "includeHosts": true,
+      "allowInsecureTls": false
+    },
+    "schema": [
+      {
+        "key": "siteUrl",
+        "type": "string",
+        "label": "Checkmk site URL",
+        "defaultValue": "",
+        "description": "The site root, for example http://checkmk.lan/mysite (what you see in the browser before /check_mk/)."
+      },
+      {
+        "key": "username",
+        "type": "string",
+        "label": "Automation username",
+        "defaultValue": "omarmk",
+        "description": "A Checkmk automation user. A read-only one (role Guest user) is all this widget needs."
+      },
+      {
+        "key": "secretFile",
+        "type": "string",
+        "label": "Secret file",
+        "defaultValue": "~/.config/omarmk/secret",
+        "description": "File holding the automation user's secret, readable only by you (chmod 600). The secret is never stored in shell.json."
+      },
+      {
+        "key": "refreshIntervalSec",
+        "type": "integer",
+        "label": "Refresh interval (seconds)",
+        "min": 15,
+        "max": 3600,
+        "step": 15,
+        "defaultValue": 60
+      },
+      {
+        "key": "notify",
+        "type": "boolean",
+        "label": "Desktop notifications",
+        "defaultValue": true,
+        "description": "Notify when a host or service newly enters a problem state or gets worse. The first check after login sends one summary."
+      },
+      {
+        "key": "notifyMinState",
+        "type": "enum",
+        "label": "Notify from",
+        "options": ["warning", "unknown", "critical"],
+        "defaultValue": "warning",
+        "description": "Lowest state that triggers a notification. Down hosts always count as critical."
+      },
+      {
+        "key": "notifyRecoveries",
+        "type": "boolean",
+        "label": "Notify on recovery",
+        "defaultValue": false
+      },
+      {
+        "key": "hideHandled",
+        "type": "boolean",
+        "label": "Hide acknowledged and downtime",
+        "defaultValue": true
+      },
+      {
+        "key": "onlyHardStates",
+        "type": "boolean",
+        "label": "Only hard states",
+        "defaultValue": true,
+        "description": "Ignore soft states that Checkmk is still re-checking, the same way its own notifications do."
+      },
+      {
+        "key": "includeHosts",
+        "type": "boolean",
+        "label": "Include down hosts",
+        "defaultValue": true
+      },
+      {
+        "key": "allowInsecureTls",
+        "type": "boolean",
+        "label": "Accept self-signed HTTPS",
+        "defaultValue": false,
+        "description": "Skip certificate verification for a site with a self-signed certificate."
+      }
+    ]
+  }
+}
