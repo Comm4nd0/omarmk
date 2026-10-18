@@ -144,7 +144,9 @@ longer need it.
 
 ```bash
 node --test tests/*.test.js   # unit tests for the parsing, sorting and notification logic
-./scripts/dev-install.sh      # validate and sync into ~/.config/omarchy/plugins/
+omarchy plugin validate .
+rsync -a --delete --exclude .git --exclude node_modules --exclude tests \
+  ./ ~/.config/omarchy/plugins/io.github.comm4nd0.omarmk/
 omarchy restart shell         # the shell caches QML, so restart to pick up edits
 ```
 
